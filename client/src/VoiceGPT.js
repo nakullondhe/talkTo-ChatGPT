@@ -11,12 +11,13 @@ const socketURL = "https://talktogpt.onrender.com";
 const socket = require("socket.io-client")(socketURL);
 
 const VoiceGPT = () => {
-  const [botState, setBotState] = React.useState("idle"); // idle, processing, speaking
+  const [botState, setBotState] = React.useState("terminated"); // idle, processing, speaking, terminated
   const [audio, setAudio] = React.useState(null); // audio file
   const [responseText, setResponseText] = React.useState(""); // text response from GPT-3
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const [audioState, setAudioState] = React.useState(""); // idle, playing, pause
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stopListening = () => {
     socket.emit("send_transcript", transcript);
   };
@@ -73,7 +74,7 @@ const VoiceGPT = () => {
     if (!listening && transcript) {
       stopListening();
     }
-  }, [listening])
+  }, [listening, stopListening, transcript])
 
   return (
     <div className="wrapper">
@@ -104,7 +105,7 @@ const VoiceGPT = () => {
         <div className="button_container">
           <button
             className="start_button button"
-            disabled={botState === "speaking" || listening}
+            disabled={botState === "speaking" || listening || botState === "terminated" }
             onClick={() => {
               resetTranscript();
               setResponseText("");
@@ -122,14 +123,14 @@ const VoiceGPT = () => {
           </button> */}
           <button
             className="pause_button button"
-            disabled={botState !== "speaking" || listening}
+            disabled={botState !== "speaking" || listening  || botState === "terminated" }
             onClick={changeAudioState}
           >
             {audioState === "playing" ? "Pause" : "Resume"}
           </button>
           <button
             className="reset_button button"
-            disabled={botState !== "speaking"}
+            disabled={botState !== "speaking"  || botState === "terminated" }
             onClick={() => {
               setBotState("idle");
               setAudio(null);
@@ -142,6 +143,14 @@ const VoiceGPT = () => {
         {responseText && (
           <>
             <h4 className="bot_says">Bot Says...</h4>
+            <div>
+              <p>{responseText}</p>
+            </div>
+          </>
+        )}
+        {botState === "terminated" && (
+          <>
+            <h4 className="bot_says">Bot Terminated (GPT Plan Expired)</h4>
             <div>
               <p>{responseText}</p>
             </div>
